@@ -7,9 +7,14 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# 生成随机密码（32位hex）
+# 生成随机密钥（64位hex = 32字节，满足 TOTP/JWT 要求）
+gen_secret() {
+    openssl rand -hex 32 2>/dev/null || head -c 64 /dev/urandom | xxd -p | tr -d '\n' | head -c 64
+}
+
+# 生成随机密码（32位hex，用于 PG/Redis 等）
 gen_password() {
-    openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | xxd -p | head -c 32
+    openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | xxd -p | tr -d '\n' | head -c 32
 }
 
 # 首次部署：从模板生成 .env 并自动填充密码
@@ -22,8 +27,8 @@ if [ ! -f .env ]; then
     # 自动生成所有密码和密钥
     PG_PASS=$(gen_password)
     REDIS_PASS=$(gen_password)
-    JWT_SEC=$(gen_password)
-    TOTP_KEY=$(gen_password)
+    JWT_SEC=$(gen_secret)
+    TOTP_KEY=$(gen_secret)
 
     sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PG_PASS}|" .env
     sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASS}|" .env
