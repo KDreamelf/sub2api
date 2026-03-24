@@ -564,7 +564,9 @@ export async function refreshOpenAIToken(
   if (clientId) {
     payload.client_id = clientId
   }
-  const { data } = await apiClient.post<Record<string, unknown>>(endpoint, payload)
+  const { data } = await apiClient.post<Record<string, unknown>>(endpoint, payload, {
+    timeout: 120000 // 120s: 后端会尝试访问 chatgpt.com 设置隐私，可能较慢
+  })
   return data
 }
 
