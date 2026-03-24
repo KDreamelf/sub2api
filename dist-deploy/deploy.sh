@@ -17,8 +17,11 @@ gen_password() {
     openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | xxd -p | tr -d '\n' | head -c 32
 }
 
+FIRST_DEPLOY=false
+
 # 首次部署：从模板生成 .env 并自动填充密码
 if [ ! -f .env ]; then
+    FIRST_DEPLOY=true
     echo "=========================================="
     echo "  首次部署：自动生成配置"
     echo "=========================================="
@@ -57,17 +60,27 @@ if [ ! -f .env ]; then
         echo "    docker compose logs sub2api | grep -i password"
     fi
     echo ""
+
+    # 首次部署清理可能残留的旧 volume（避免密码不匹配）
+    echo "  清理可能残留的旧数据卷..."
+    docker compose down -v 2>/dev/null || true
 fi
 
 echo "=========================================="
 echo "  Sub2API 部署"
 echo "=========================================="
 echo ""
-echo "  构建并启动所有服务..."
-echo "  （首次构建需要下载依赖，可能需要几分钟）"
-echo ""
 
-docker compose up -d --build
+if [ "$FIRST_DEPLOY" = true ]; then
+    echo "  首次构建（无缓存），需要下载依赖，可能需要较长时间..."
+    echo ""
+    docker compose build --no-cache
+    docker compose up -d
+else
+    echo "  增量构建并启动..."
+    echo ""
+    docker compose up -d --build
+fi
 
 echo ""
 echo "=========================================="
