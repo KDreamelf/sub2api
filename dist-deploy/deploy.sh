@@ -35,19 +35,27 @@ if [ ! -f .env ]; then
     sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SEC}|" .env
     sed -i "s|^TOTP_ENCRYPTION_KEY=.*|TOTP_ENCRYPTION_KEY=${TOTP_KEY}|" .env
 
+    # 交互式设置管理员密码
     echo ""
-    echo "  已自动生成以下密码/密钥（保存在 .env 中）:"
-    echo "    POSTGRES_PASSWORD = ${PG_PASS}"
-    echo "    REDIS_PASSWORD    = ${REDIS_PASS}"
-    echo "    JWT_SECRET        = ${JWT_SEC}"
-    echo "    TOTP_ENCRYPTION_KEY = ${TOTP_KEY}"
+    echo "  设置管理员密码（直接回车则自动生成，首次启动后从日志查看）:"
+    printf "  ADMIN_PASSWORD> "
+    read -r ADMIN_PASS
+    if [ -n "$ADMIN_PASS" ]; then
+        sed -i "s|^ADMIN_PASSWORD=.*|ADMIN_PASSWORD=${ADMIN_PASS}|" .env
+    fi
+
+    echo ""
+    echo "  ========== 配置生成完毕 =========="
+    echo ""
+    echo "  内部密码/密钥已自动生成并写入 .env（无需关心）"
     echo ""
     echo "  管理员账号: admin@sub2api.local"
-    echo "  管理员密码: 首次启动后查看日志获取"
-    echo "    docker compose logs sub2api | grep -i password"
-    echo ""
-    echo "  如需自定义管理员密码，编辑 .env 中的 ADMIN_PASSWORD"
-    echo "    nano $SCRIPT_DIR/.env"
+    if [ -n "$ADMIN_PASS" ]; then
+        echo "  管理员密码: （已设置为你输入的密码）"
+    else
+        echo "  管理员密码: 首次启动后查看日志获取"
+        echo "    docker compose logs sub2api | grep -i password"
+    fi
     echo ""
 fi
 
