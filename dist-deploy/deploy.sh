@@ -57,16 +57,14 @@ echo "  Sub2API 部署"
 echo "=========================================="
 echo ""
 
-if [ "$FIRST_DEPLOY" = true ]; then
-    echo "  首次构建（无缓存），需要下载依赖，可能需要较长时间..."
-    echo ""
-    docker compose build --no-cache
-    docker compose up -d
-else
-    echo "  增量构建并启动..."
-    echo ""
-    docker compose up -d --build
-fi
+# 停止旧容器、删除旧镜像（不删数据卷，保留数据库数据）
+echo "  清理旧容器和镜像..."
+docker compose down --rmi local 2>/dev/null || true
+
+echo "  构建新镜像（无缓存）..."
+echo ""
+docker compose build --no-cache
+docker compose up -d
 
 echo ""
 echo "=========================================="
