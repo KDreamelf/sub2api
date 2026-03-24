@@ -12,14 +12,10 @@ gen_secret() {
     openssl rand -hex 32 2>/dev/null || head -c 64 /dev/urandom | xxd -p | tr -d '\n' | head -c 64
 }
 
-# 生成随机密码（32位hex，用于 PG/Redis 等）
-gen_password() {
-    openssl rand -hex 16 2>/dev/null || head -c 32 /dev/urandom | xxd -p | tr -d '\n' | head -c 32
-}
-
 FIRST_DEPLOY=false
 
-# 首次部署：从模板生成 .env 并自动填充密码
+# 首次部署：从模板生成 .env，只生成 JWT/TOTP 密钥
+# PG/Redis 密码已固定在 .env.example 中，不重新生成
 if [ ! -f .env ]; then
     FIRST_DEPLOY=true
     echo "=========================================="
@@ -27,14 +23,10 @@ if [ ! -f .env ]; then
     echo "=========================================="
     cp .env.example .env
 
-    # 自动生成所有密码和密钥
-    PG_PASS=$(gen_password)
-    REDIS_PASS=$(gen_password)
+    # 只生成 JWT 和 TOTP 密钥（PG/Redis 密码已固定）
     JWT_SEC=$(gen_secret)
     TOTP_KEY=$(gen_secret)
 
-    sed -i "s|^POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=${PG_PASS}|" .env
-    sed -i "s|^REDIS_PASSWORD=.*|REDIS_PASSWORD=${REDIS_PASS}|" .env
     sed -i "s|^JWT_SECRET=.*|JWT_SECRET=${JWT_SEC}|" .env
     sed -i "s|^TOTP_ENCRYPTION_KEY=.*|TOTP_ENCRYPTION_KEY=${TOTP_KEY}|" .env
 
@@ -50,8 +42,6 @@ if [ ! -f .env ]; then
     echo ""
     echo "  ========== 配置生成完毕 =========="
     echo ""
-    echo "  内部密码/密钥已自动生成并写入 .env（无需关心）"
-    echo ""
     echo "  管理员账号: admin@sub2api.local"
     if [ -n "$ADMIN_PASS" ]; then
         echo "  管理员密码: （已设置为你输入的密码）"
@@ -60,10 +50,6 @@ if [ ! -f .env ]; then
         echo "    docker compose logs sub2api | grep -i password"
     fi
     echo ""
-
-    # 首次部署清理可能残留的旧 volume（避免密码不匹配）
-    echo "  清理可能残留的旧数据卷..."
-    docker compose down -v 2>/dev/null || true
 fi
 
 echo "=========================================="

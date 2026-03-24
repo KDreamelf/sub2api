@@ -22,6 +22,8 @@ services:
     image: sub2api:local
     container_name: sub2api
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ulimits:
       nofile:
         soft: 100000
